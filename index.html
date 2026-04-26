@@ -1,0 +1,333 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ASR Capacity Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.8.5/d3.min.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap');
+        body { font-family: 'Inter', sans-serif; }
+        .animate-pulse-slow { animation: pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite; }
+        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: .7; } }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800 p-4 min-h-screen">
+
+    <!-- 1. HEADER SUPERIOR -->
+    <header class="flex justify-between items-center mb-4 px-4 bg-white rounded-xl py-3 shadow-sm border border-slate-100">
+        <div class="flex items-center gap-3">
+            <div class="bg-red-600 p-2 rounded-lg text-white font-black italic">ASR</div>
+            <div>
+                <h1 class="text-sm font-black tracking-tight leading-none uppercase">ASR - Monitoreo Operativo</h1>
+                <p class="text-[9px] text-slate-400 font-bold uppercase tracking-tighter">Real-Time Capacity v3.5 (HTML)</p>
+            </div>
+        </div>
+        <div class="flex gap-2">
+            <span class="bg-red-600 text-white text-[10px] font-black px-3 py-1 rounded-full uppercase shadow-sm">● Capacidad Crítica</span>
+            <span class="bg-slate-100 text-slate-600 text-[10px] font-bold px-3 py-1 rounded-full border border-slate-200 uppercase">ASY RET <span class="font-black ml-1">6</span></span>
+            <span class="bg-slate-100 text-slate-600 text-[10px] font-bold px-3 py-1 rounded-full border border-slate-200 uppercase">NDK SSHIP <span class="font-black ml-1">4</span></span>
+        </div>
+    </header>
+
+    <!-- 2. BARRA DE PROGRESO SUPERIOR -->
+    <div class="bg-white rounded-xl p-4 shadow-sm border border-slate-100 mb-4 flex items-center gap-6">
+        <span class="text-[10px] font-black text-slate-400 uppercase flex-shrink-0">Progreso Total</span>
+        <div class="flex-grow h-3 bg-slate-100 rounded-full overflow-hidden flex relative">
+            <div class="h-full bg-green-500" style="width: 33.3%"></div>
+            <div class="h-full bg-yellow-400" style="width: 33.3%"></div>
+            <div class="h-full bg-orange-500" style="width: 16.6%"></div>
+            <div class="h-full bg-red-500" style="width: 16.7%"></div>
+            <div id="top-marker" class="absolute top-0 w-6 h-6 bg-slate-800 rounded-full -mt-1.5 border-4 border-white shadow-lg transform -translate-x-1/2 transition-all duration-500" style="left: 85%"></div>
+        </div>
+        <div class="flex items-center gap-3">
+            <span id="top-occupancy-text" class="text-2xl font-black text-slate-800">95.7%</span>
+            <button class="bg-slate-800 text-white text-[10px] font-bold px-4 py-1.5 rounded-lg uppercase">▶ Auto</button>
+        </div>
+    </div>
+
+    <div class="grid grid-cols-12 gap-4">
+        
+        <!-- IZQUIERDA: REPORTES -->
+        <aside class="col-span-3 bg-white rounded-2xl p-5 shadow-sm border border-slate-100">
+            <h2 class="text-[11px] font-black text-blue-900 uppercase flex items-center gap-2 mb-6 tracking-widest">
+                <span class="w-5 h-5 bg-orange-500 rounded-full flex items-center justify-center text-[10px] text-white">!</span>
+                Reporte de Errores
+            </h2>
+            <div class="space-y-6">
+                <div class="relative pt-1">
+                    <div class="flex items-center justify-between mb-1">
+                        <span class="text-[10px] font-bold text-slate-500 uppercase">Ubicación inhabilitada</span>
+                        <span class="bg-orange-50 text-orange-700 px-2 py-0.5 rounded text-[10px] font-black border border-orange-100">92</span>
+                    </div>
+                    <div class="overflow-hidden h-2.5 rounded-full bg-slate-100">
+                        <div class="bg-yellow-400 h-full" style="width: 76%"></div>
+                    </div>
+                </div>
+                <div class="relative pt-1">
+                    <div class="flex items-center justify-between mb-1">
+                        <span class="text-[10px] font-bold text-slate-500 uppercase">Sin expediente recibo</span>
+                        <span class="bg-orange-50 text-orange-700 px-2 py-0.5 rounded text-[10px] font-black border border-orange-100">11</span>
+                    </div>
+                    <div class="overflow-hidden h-2.5 rounded-full bg-slate-100">
+                        <div class="bg-orange-500 h-full" style="width: 45%"></div>
+                    </div>
+                </div>
+            </div>
+        </aside>
+
+        <!-- CENTRAL: VELOCÍMETRO -->
+        <main class="col-span-6 bg-white rounded-2xl p-6 shadow-sm border border-slate-100 flex flex-col items-center relative overflow-hidden">
+            <div class="w-full flex justify-between absolute top-8 px-10 z-10">
+                <div class="border border-slate-100 rounded-xl p-3 text-center bg-slate-50 shadow-sm min-w-[100px]">
+                    <p class="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Ocupación</p>
+                    <p id="card-occupancy" class="text-xl font-black text-red-500">95.7%</p>
+                </div>
+                <div class="text-right">
+                    <p class="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Estado Actual</p>
+                    <p id="status-label" class="text-xl font-black leading-tight text-red-600">CAPACIDAD CRÍTICA</p>
+                    <p id="status-range" class="text-[10px] text-slate-400 font-bold uppercase">Mayor a 95%</p>
+                </div>
+            </div>
+
+            <!-- SVG del Velocímetro -->
+            <div class="mt-14 relative w-full flex justify-center">
+                <svg id="gauge-svg" class="w-full max-w-[500px] h-auto"></svg>
+                <div class="absolute inset-x-0 bottom-16 flex flex-col items-center">
+                    <span id="center-percentage" class="text-5xl font-black text-red-600 transition-colors duration-500">95.7%</span>
+                    <span class="text-[9px] font-black text-slate-400 uppercase tracking-[0.3em] mt-1">Capacidad Crítica</span>
+                </div>
+            </div>
+
+            <div id="connotation-box" class="mt-2 w-full max-w-2xl border-2 rounded-2xl p-4 text-center transition-all duration-500 bg-red-50 border-red-500 shadow-sm">
+                <h3 id="connotation-title" class="text-sm font-black mb-1 text-red-600">Acción Urgente</h3>
+                <p id="connotation-desc" class="text-[10px] text-slate-500 font-medium leading-tight">El rack está prácticamente lleno. Riesgo inminente de interrupción.</p>
+            </div>
+        </main>
+
+        <!-- DERECHA: TOTES Y OBJETIVOS -->
+        <aside class="col-span-3 flex flex-col gap-4">
+            <div class="bg-white rounded-2xl p-6 shadow-sm border border-slate-100 text-center">
+                <h2 class="text-[11px] font-black text-blue-900 uppercase flex items-center justify-center gap-2 mb-4 tracking-widest">🧺 Totes Vacíos</h2>
+                <div class="relative inline-block w-full">
+                    <svg id="totes-svg" class="w-full max-w-[180px] mx-auto"></svg>
+                </div>
+                <div class="mt-4 grid grid-cols-2 gap-2">
+                    <div class="p-2 bg-blue-50 rounded-lg">
+                        <p class="text-[8px] font-bold text-blue-400 uppercase">Disponibles</p>
+                        <p class="text-sm font-black text-blue-700">89%</p>
+                    </div>
+                    <div class="p-2 bg-red-50 rounded-lg">
+                        <p class="text-[8px] font-bold text-red-400 uppercase">Faltante</p>
+                        <p class="text-sm font-black text-red-700">11%</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="bg-white rounded-2xl p-6 shadow-sm border border-slate-100 flex-grow">
+                <h2 class="text-[11px] font-black text-slate-500 uppercase flex items-center gap-2 mb-4 tracking-widest">⚙️ Objetivos</h2>
+                <div class="space-y-3">
+                    <div class="flex justify-between items-center border border-slate-100 rounded-xl px-4 py-3 bg-slate-50">
+                        <span class="text-[10px] font-bold text-slate-400 uppercase">Límite Máx</span>
+                        <span class="text-base font-black text-slate-800">1000</span>
+                    </div>
+                    <div class="flex justify-between items-center border border-slate-100 rounded-xl px-4 py-3 bg-slate-50">
+                        <span class="text-[10px] font-bold text-slate-400 uppercase">Mínimo Req</span>
+                        <span class="text-base font-black text-slate-800">500</span>
+                    </div>
+                </div>
+            </div>
+        </aside>
+
+        <!-- INFERIOR: INDICADORES -->
+        <div class="col-span-12 grid grid-cols-12 gap-4">
+            <div class="col-span-3 bg-white rounded-2xl p-5 shadow-sm border-l-4 border-l-blue-600 flex justify-between items-center">
+                <div>
+                    <p class="text-[11px] font-black text-blue-900 uppercase">→] Entrando</p>
+                    <div class="mt-2 space-y-0.5 text-[9px] font-bold text-slate-400">
+                        <p>Por Moldeo: <span class="text-slate-800">1748</span></p>
+                        <p>Por NDK: <span class="text-slate-800">4</span></p>
+                    </div>
+                </div>
+                <span class="text-4xl font-black text-blue-700">1762</span>
+            </div>
+
+            <div class="col-span-2 bg-white rounded-2xl p-5 shadow-sm border-l-4 border-l-orange-500 flex justify-between items-center">
+                <div>
+                    <p class="text-[11px] font-black text-orange-900 uppercase">[→ Saliendo</p>
+                    <p class="text-[9px] text-slate-400 font-bold mt-2">Hacia ASY: <span class="text-slate-800">19</span></p>
+                </div>
+                <span class="text-4xl font-black text-orange-700">32</span>
+            </div>
+
+            <div class="col-span-3 bg-white rounded-2xl p-5 shadow-sm border-l-4 border-l-purple-600">
+                <p class="text-[11px] font-black text-purple-900 uppercase mb-3">📥 TO'S Abiertas</p>
+                <div class="grid grid-cols-2 gap-2 text-center">
+                    <div class="bg-slate-50 rounded-lg p-2">
+                        <p class="text-[8px] font-bold text-slate-400 uppercase">Más 12h</p>
+                        <p class="text-lg font-black text-red-500">1734</p>
+                    </div>
+                    <div class="bg-slate-50 rounded-lg p-2">
+                        <p class="text-[8px] font-bold text-slate-400 uppercase">Menos 12h</p>
+                        <p class="text-lg font-black text-slate-800">0</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-span-2 bg-white rounded-2xl p-5 shadow-sm border border-slate-100">
+                <p class="text-[9px] font-black text-slate-400 uppercase text-center mb-2 tracking-widest">Lotes Recientes</p>
+                <div class="space-y-1 text-[8px] font-bold">
+                    <div class="flex justify-between border-b border-slate-50 pb-1">
+                        <span class="text-slate-400 uppercase">ID:011</span>
+                        <span class="text-slate-800 uppercase">345677025</span>
+                    </div>
+                    <div class="flex justify-between border-b border-slate-50 pb-1">
+                        <span class="text-slate-400 uppercase">ID:018</span>
+                        <span class="text-slate-800 uppercase">314102207</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-span-2 flex flex-col justify-center items-center gap-1 opacity-60">
+                <div class="bg-slate-800 text-white px-3 py-1 rounded font-black italic text-xs uppercase">DAIFUKU</div>
+                <p class="text-[7px] font-black text-slate-400 uppercase tracking-[0.2em]">HTML Dashboard v3.5</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- SIMULADOR FLOTANTE -->
+    <div class="fixed bottom-8 right-8 bg-white/90 backdrop-blur p-4 rounded-3xl shadow-2xl border border-slate-200 flex items-center gap-6 z-50">
+        <div class="flex flex-col">
+            <span class="text-[10px] font-black text-slate-400 uppercase ml-1">Simulador de Carga</span>
+            <div class="flex items-center gap-4">
+                <input id="range-slider" type="range" min="70" max="100" step="0.1" value="95.7" class="w-32 accent-slate-800 cursor-pointer">
+                <span id="slider-val" class="text-lg font-black min-w-[60px] text-red-600">95.7%</span>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let currentOccupancy = 95.7;
+
+        function getStatusData(val) {
+            if (val < 80) return { label: "OPERACIÓN ÓPTIMA", range: "70% a 79%", color: "#22c55e", bgColor: "bg-green-50", borderColor: "border-green-500", textColor: "text-green-600", title: "Flujo Ideal", desc: "El rack cuenta con una amplia disponibilidad de ubicaciones." };
+            if (val < 90) return { label: "OPERACIÓN ESTÁNDAR", range: "80% a 89%", color: "#eab308", bgColor: "bg-yellow-50", borderColor: "border-yellow-500", textColor: "text-yellow-600", title: "Operación Normal", desc: "El rack está funcionando dentro de su rango de utilización eficiente." };
+            if (val <= 95) return { label: "ALTA DEMANDA", range: "90% a 95%", color: "#f97316", bgColor: "bg-orange-50", borderColor: "border-orange-500", textColor: "text-orange-600", title: "Monitoreo Cercano", desc: "El rack está operando cerca de su máxima capacidad." };
+            return { label: "CAPACIDAD CRÍTICA", range: "Mayor a 95%", color: "#ef4444", bgColor: "bg-red-50", borderColor: "border-red-500", textColor: "text-red-600", title: "Acción Urgente", desc: "El rack está prácticamente lleno. Riesgo inminente de interrupción." };
+        }
+
+        function updateDashboard(val) {
+            currentOccupancy = val;
+            const status = getStatusData(val);
+
+            // Actualizar textos
+            document.getElementById('top-occupancy-text').innerText = val.toFixed(1) + '%';
+            document.getElementById('card-occupancy').innerText = val.toFixed(1) + '%';
+            document.getElementById('center-percentage').innerText = val.toFixed(1) + '%';
+            document.getElementById('slider-val').innerText = val.toFixed(1) + '%';
+            document.getElementById('status-label').innerText = status.label;
+            document.getElementById('status-range').innerText = status.range;
+            document.getElementById('connotation-title').innerText = status.title;
+            document.getElementById('connotation-desc').innerText = status.desc;
+
+            // Actualizar colores
+            const centerPerc = document.getElementById('center-percentage');
+            centerPerc.className = `text-5xl font-black transition-colors duration-500 ${status.textColor}`;
+            document.getElementById('card-occupancy').className = `text-xl font-black ${status.textColor}`;
+            document.getElementById('status-label').className = `text-xl font-black leading-tight ${status.textColor}`;
+            document.getElementById('slider-val').className = `text-lg font-black min-w-[60px] ${status.textColor}`;
+
+            const box = document.getElementById('connotation-box');
+            box.className = `mt-2 w-full max-w-2xl border-2 rounded-2xl p-4 text-center transition-all duration-500 ${status.bgColor} ${status.borderColor} shadow-sm`;
+            document.getElementById('connotation-title').className = `text-sm font-black mb-1 ${status.textColor}`;
+
+            // Actualizar marcador de barra superior
+            const pctPos = ((val - 70) / 30) * 100;
+            document.getElementById('top-marker').style.left = `${pctPos}%`;
+
+            renderGauge(val, status.color);
+        }
+
+        function renderGauge(val, color) {
+            const svg = d3.select("#gauge-svg");
+            svg.selectAll("*").remove();
+
+            const width = 500;
+            const height = 320;
+            const radius = 160; // Radio grande
+
+            const g = svg
+                .attr("viewBox", `0 0 ${width} ${height}`)
+                .append("g")
+                .attr("transform", `translate(${width / 2}, ${height - 30})`);
+
+            const scale = d3.scaleLinear().domain([70, 100]).range([-Math.PI / 2, Math.PI / 2]);
+
+            const segments = [
+                { s: 70, e: 80, c: "#22c55e" },
+                { s: 80, e: 90, c: "#eab308" },
+                { s: 90, e: 95, c: "#f97316" },
+                { s: 95, e: 100, c: "#ef4444" }
+            ];
+
+            const arc = d3.arc().innerRadius(radius - 50).outerRadius(radius).cornerRadius(4).padAngle(0.015);
+
+            g.selectAll("path")
+                .data(segments)
+                .enter()
+                .append("path")
+                .attr("d", d => arc({ startAngle: scale(d.s), endAngle: scale(d.e) }))
+                .attr("fill", d => d.c);
+
+            // Ticks
+            const ticks = [70, 80, 90, 95, 100];
+            g.selectAll(".tick")
+                .data(ticks)
+                .enter()
+                .append("text")
+                .attr("x", d => Math.cos(scale(d) - Math.PI / 2) * (radius + 20))
+                .attr("y", d => Math.sin(scale(d) - Math.PI / 2) * (radius + 20))
+                .attr("text-anchor", "middle")
+                .attr("class", "text-[11px] font-bold fill-slate-400")
+                .text(d => d + "%");
+
+            // Aguja
+            const needleAngle = scale(val);
+            const needleLen = radius - 15;
+            const needleGroup = g.append("g").attr("transform", `rotate(${(needleAngle * 180) / Math.PI})`);
+
+            needleGroup.append("path")
+                .attr("d", `M -7 0 L 0 ${-needleLen} L 7 0 Z`)
+                .attr("fill", "#1e293b");
+
+            needleGroup.append("circle").attr("r", 15).attr("fill", "#1e293b");
+            needleGroup.append("circle").attr("r", 6).attr("fill", "white");
+        }
+
+        function renderDonut() {
+            const svg = d3.select("#totes-svg");
+            const size = 180;
+            const g = svg.attr("viewBox", `0 0 ${size} ${size}`).append("g").attr("transform", `translate(${size / 2}, ${size / 2})`);
+            const arc = d3.arc().innerRadius(60).outerRadius(82);
+            const pie = d3.pie().sort(null)([89, 11]);
+
+            g.selectAll("path").data(pie).enter().append("path")
+                .attr("d", arc)
+                .attr("fill", (d, i) => i === 0 ? "#3b82f6" : "#f1f5f9");
+
+            g.append("text").attr("text-anchor", "middle").attr("dy", "0.3em").attr("class", "text-3xl font-black fill-blue-600").text("89%");
+        }
+
+        // Inicialización
+        window.onload = () => {
+            updateDashboard(95.7);
+            renderDonut();
+            
+            document.getElementById('range-slider').addEventListener('input', (e) => {
+                updateDashboard(parseFloat(e.target.value));
+            });
+        };
+    </script>
+</body>
+</html>
