@@ -209,6 +209,8 @@
 
     <script>
         let currentOccupancy = 95.7;
+        let autoMode = false;
+        let autoInterval = null;
 
         function getStatusData(val) {
             if (val < 80) return { label: "OPERACIÓN ÓPTIMA", range: "70% a 79%", color: "#22c55e", bgColor: "bg-green-50", borderColor: "border-green-500", textColor: "text-green-600", title: "Flujo Ideal", desc: "El rack cuenta con una amplia disponibilidad de ubicaciones." };
@@ -216,6 +218,31 @@
             if (val <= 95) return { label: "ALTA DEMANDA", range: "90% a 95%", color: "#f97316", bgColor: "bg-orange-50", borderColor: "border-orange-500", textColor: "text-orange-600", title: "Monitoreo Cercano", desc: "El rack está operando cerca de su máxima capacidad." };
             return { label: "CAPACIDAD CRÍTICA", range: "Mayor a 95%", color: "#ef4444", bgColor: "bg-red-50", borderColor: "border-red-500", textColor: "text-red-600", title: "Acción Urgente", desc: "El rack está prácticamente lleno. Riesgo inminente de interrupción." };
         }
+        function getDynamicChange(val) {
+
+    if (val < 80) return Math.random() * 1.2;
+    if (val < 90) return (Math.random() * 1.5) - 0.5;
+    if (val <= 95) return (Math.random() * 1.8) - 0.2;
+    return -(Math.random() * 2.2);
+}
+        function startAuto() {
+
+    autoInterval = setInterval(() => {
+
+        let change = getDynamicChange(currentOccupancy);
+        let newVal = currentOccupancy + change;
+
+        if (newVal > 100) newVal = 100;
+        if (newVal < 70) newVal = 70;
+
+        updateDashboard(newVal);
+
+    }, 900);
+}
+
+function stopAuto() {
+    clearInterval(autoInterval);
+}
 
         function updateDashboard(val) {
             currentOccupancy = val;
@@ -320,14 +347,39 @@
         }
 
         // Inicialización
-        window.onload = () => {
-            updateDashboard(95.7);
-            renderDonut();
-            
-            document.getElementById('range-slider').addEventListener('input', (e) => {
-                updateDashboard(parseFloat(e.target.value));
-            });
-        };
+      window.onload = () => {
+    updateDashboard(95.7);
+    renderDonut();
+    
+    // SLIDER (manual + apaga auto)
+    document.getElementById('range-slider').addEventListener('input', (e) => {
+
+        if (autoMode) {
+            autoMode = false;
+            stopAuto();
+            document.querySelector("button").innerText = "▶ Auto";
+        }
+
+        updateDashboard(parseFloat(e.target.value));
+    });
+
+    // BOTÓN AUTO (AQUÍ VA LO NUEVO 👇)
+    const autoBtn = document.querySelector("button");
+
+    autoBtn.addEventListener("click", () => {
+
+        autoMode = !autoMode;
+
+        if (autoMode) {
+            startAuto();
+            autoBtn.innerText = "⏸ Stop";
+        } else {
+            stopAuto();
+            autoBtn.innerText = "▶ Auto";
+        }
+    });
+
+};
     </script>
 </body>
 </html>
