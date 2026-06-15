@@ -467,7 +467,7 @@ class DatabaseEngine {
     ]);
 
     const pData = [
-      { 'Project Name':'ASR Dashboard Upgrade','Status':'Active','Priority':'High','Budget':45000,'Progress':67,'Start Date':'2026-01-15','Due Date':'2026-07-30','Owner':'Ana García','Tags':'Frontend,Backend','Notes':'Real-time capacity monitoring upgrade' },
+      { 'Project Name':'Platform Redesign','Status':'Active','Priority':'High','Budget':45000,'Progress':67,'Start Date':'2026-01-15','Due Date':'2026-07-30','Owner':'Ana García','Tags':'Frontend,Backend','Notes':'Full UI/UX platform overhaul' },
       { 'Project Name':'Cloud DB Integration','Status':'Active','Priority':'Critical','Budget':120000,'Progress':35,'Start Date':'2026-03-01','Due Date':'2026-12-31','Owner':'Carlos López','Tags':'Backend,Data','Notes':'Main database migration project' },
       { 'Project Name':'Mobile App v2.0','Status':'Planning','Priority':'Medium','Budget':85000,'Progress':10,'Start Date':'2026-06-01','Due Date':'2026-11-30','Owner':'María Torres','Tags':'Mobile','Notes':'New mobile experience' },
       { 'Project Name':'API Gateway','Status':'Active','Priority':'High','Budget':55000,'Progress':48,'Start Date':'2026-02-14','Due Date':'2026-08-15','Owner':'Luis Martínez','Tags':'Backend,DevOps','Notes':'Unified API layer' },
@@ -515,34 +515,34 @@ class DatabaseEngine {
       await this.insertRow(inventory.id, row);
     }
 
-    // Table 3: ASR Operations Log
-    const ops = await this.createTable('Operations Log', [
-      { name:'Operation', type:'select', options:{ choices:['Inbound','Outbound','Transfer','Adjustment','Maintenance'] } },
-      { name:'Reference', type:'text' },
-      { name:'Units', type:'number' },
-      { name:'Source', type:'text' },
-      { name:'Destination', type:'text' },
-      { name:'Operator', type:'text' },
-      { name:'Status', type:'select', options:{ choices:['Pending','In Progress','Completed','Error','Cancelled'] } },
-      { name:'Duration (min)', type:'number' },
+    // Table 3: Support Tickets
+    const tickets = await this.createTable('Support Tickets', [
+      { name:'Title', type:'text' },
+      { name:'Type', type:'select', options:{ choices:['Bug','Feature Request','Question','Incident','Improvement'] } },
+      { name:'Priority', type:'select', options:{ choices:['Low','Medium','High','Critical'] } },
+      { name:'Status', type:'select', options:{ choices:['Open','In Progress','Resolved','Closed','Pending'] } },
+      { name:'Assigned To', type:'text' },
+      { name:'Reporter', type:'email' },
+      { name:'Due Date', type:'date' },
+      { name:'Resolution Time (h)', type:'number' },
       { name:'Notes', type:'text' }
     ]);
 
-    const oData = [
-      { Operation:'Inbound', Reference:'RCV-011-345677025', Units:345, Source:'Moldeo', Destination:'Rack A', Operator:'Juan P.', Status:'Completed', 'Duration (min)':42 },
-      { Operation:'Inbound', Reference:'RCV-018-314102207', Units:314, Source:'NDK', Destination:'Rack B', Operator:'Sara M.', Status:'Completed', 'Duration (min)':38 },
-      { Operation:'Outbound', Reference:'SHP-001-ASY', Units:19, Source:'Rack C', Destination:'ASY', Operator:'Pedro L.', Status:'Completed', 'Duration (min)':25 },
-      { Operation:'Transfer', Reference:'TRF-1734', Units:50, Source:'Rack A', Destination:'Rack D', Operator:'Ana G.', Status:'In Progress', 'Duration (min)':0 },
-      { Operation:'Maintenance', Reference:'MNT-ASR-06', Units:0, Source:'Zone 2', Destination:'Zone 2', Operator:'Tech Team', Status:'Pending', 'Duration (min)':0, Notes:'Scheduled conveyor maintenance' },
-      { Operation:'Adjustment', Reference:'ADJ-092', Units:-3, Source:'Rack B', Destination:'Rack B', Operator:'Carlos R.', Status:'Completed', 'Duration (min)':12, Notes:'Damaged goods removal' },
-      { Operation:'Inbound', Reference:'RCV-022-298740001', Units:298, Source:'Moldeo', Destination:'Rack A', Operator:'Juan P.', Status:'In Progress', 'Duration (min)':0 },
-      { Operation:'Outbound', Reference:'SHP-002-ASY', Units:32, Source:'Rack C', Destination:'ASY', Operator:'María V.', Status:'Pending', 'Duration (min)':0 }
+    const tData = [
+      { Title:'Login page throws 500 on mobile Safari', Type:'Bug', Priority:'Critical', Status:'In Progress', 'Assigned To':'Luis M.', Reporter:'client@example.com', 'Due Date':'2026-06-20', 'Resolution Time (h)':0 },
+      { Title:'Add dark mode toggle', Type:'Feature Request', Priority:'Medium', Status:'Open', 'Assigned To':'Sofia R.', Reporter:'user1@example.com', 'Due Date':'2026-07-01', 'Resolution Time (h)':0 },
+      { Title:'CSV export missing last column', Type:'Bug', Priority:'High', Status:'Resolved', 'Assigned To':'Carlos L.', Reporter:'ops@example.com', 'Due Date':'2026-06-15', 'Resolution Time (h)':3 },
+      { Title:'API rate limit too low for enterprise', Type:'Improvement', Priority:'High', Status:'Open', 'Assigned To':'Ana G.', Reporter:'enterprise@example.com', 'Due Date':'2026-06-30', 'Resolution Time (h)':0 },
+      { Title:'How to configure OAuth2?', Type:'Question', Priority:'Low', Status:'Resolved', 'Assigned To':'María T.', Reporter:'dev@example.com', 'Due Date':'2026-06-16', 'Resolution Time (h)':1 },
+      { Title:'Dashboard crashes on large datasets', Type:'Bug', Priority:'Critical', Status:'In Progress', 'Assigned To':'Roberto S.', Reporter:'admin@example.com', 'Due Date':'2026-06-18', 'Resolution Time (h)':0 },
+      { Title:'Bulk delete confirmation dialog', Type:'Feature Request', Priority:'Medium', Status:'Open', 'Assigned To':'Elena V.', Reporter:'pm@example.com', 'Due Date':'2026-07-15', 'Resolution Time (h)':0 },
+      { Title:'Webhook retry logic on failure', Type:'Improvement', Priority:'High', Status:'Pending', 'Assigned To':'Diego M.', Reporter:'devops@example.com', 'Due Date':'2026-06-28', 'Resolution Time (h)':0 }
     ];
 
-    for (const d of oData) {
+    for (const d of tData) {
       const row = {};
-      ops.columns.forEach(c => { if (d[c.name] !== undefined) row[c.id] = d[c.name]; });
-      await this.insertRow(ops.id, row);
+      tickets.columns.forEach(c => { if (d[c.name] !== undefined) row[c.id] = d[c.name]; });
+      await this.insertRow(tickets.id, row);
     }
 
     // Extra views
@@ -550,7 +550,8 @@ class DatabaseEngine {
     await this.createView(projects.id, { name:'Gallery', type:'gallery', config:{} });
     await this.createView(projects.id, { name:'Analytics', type:'chart', config:{ chartType:'bar' } });
     await this.createView(inventory.id, { name:'Kanban by Category', type:'kanban', config:{ groupBy: inventory.columns.find(c=>c.name==='Category')?.id } });
-    await this.createView(ops.id, { name:'Calendar', type:'calendar', config:{} });
+    await this.createView(tickets.id, { name:'Kanban by Status', type:'kanban', config:{ groupBy: tickets.columns.find(c=>c.name==='Status')?.id } });
+    await this.createView(tickets.id, { name:'Calendar', type:'calendar', config:{} });
   }
 
   /* ── IDB helpers ── */
